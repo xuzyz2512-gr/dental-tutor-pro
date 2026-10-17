@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dental Tutor Pro</title>
+<style>
+:root{--ink:#0e3b43;--bg:#f4f7f7;--tint:#dcebea;--acc:#c8455c;--line:#b9cfcf;--mute:#4f6d70;font:16px/1.5 system-ui,sans-serif;color:var(--ink)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+aside{background:var(--ink);color:#fff}
+.brand{padding:20px;font:700 1.25rem Georgia,serif}
+nav{display:flex;flex-direction:column}
+nav a{color:#cfe3e3;padding:12px 20px;text-decoration:none}
+nav a.on{background:var(--tint);color:var(--ink);font-weight:600}
+main{padding:24px;max-width:720px;width:100%}
+h1{font:700 1.6rem Georgia,serif;margin:0 0 12px}
+h3{margin:0 0 4px}
+input,textarea,select,button{font:inherit;color:inherit;border:1px solid var(--line);border-radius:6px;padding:10px;background:#fff;margin:0 8px 8px 0;max-width:100%}
+textarea,input:not([type=checkbox]):not([type=date]){width:100%}
+button{cursor:pointer;min-height:44px}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button:disabled{opacity:.6;cursor:default}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.log{min-height:200px;max-height:50vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px;margin:8px 0}
+.msg{white-space:pre-wrap;margin:6px 0;padding:8px 10px;border-radius:6px}
+.user{background:var(--tint)}.err{color:#a1202f}
+.opt{display:block;width:100%;text-align:left}
+.right{background:#d7efdd;border-color:#2b8a4b}.wrong{background:#f8d9de;border-color:var(--acc)}
+.meta,.empty{color:var(--mute);margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px;margin:8px 0}
+.pre{white-space:pre-wrap}.q{font:600 1.15rem Georgia,serif}.a{background:var(--tint);padding:10px;border-radius:6px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px}dd{margin:0}
+[hidden]{display:none!important}
+@media(max-width:720px){
+body{grid-template-columns:1fr;padding-bottom:64px}
+aside{position:fixed;bottom:0;left:0;right:0;z-index:2}
+.brand{display:none}
+nav{flex-direction:row;overflow-x:auto}
+nav a{padding:14px 12px;white-space:nowrap}
+main{padding:16px}
+}
+</style>
+</head>
+<body>
+<aside><div class="brand">Dental Tutor Pro</div><nav id="nav" aria-label="Sections"></nav></aside>
+<main id="view"></main>
+<script>
+const $=s=>document.querySelector(s);
+const h=(t,p={},...k)=>{const e=document.createElement(t);for(const[a,v]of Object.entries(p))a.startsWith('on')?e.addEventListener(a.slice(2),v):a==='class'?e.className=v:e.setAttribute(a,v);e.append(...k);return e};
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('dtp:'+k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem('dtp:'+k,JSON.stringify(v))}catch{}}};
+const NAV=[['tutor','Tutor'],['quiz','Quiz'],['cards','Flashcards'],['notes','Notes'],['plan','Planner'],['progress','Progress']];
+let DATA={questions:[],cards:[]},qi=0,ci=0,onlyRev=false,editing=null;const log=[];
+
+function tutor(){
+ const out=h('div',{class:'log','aria-live':'polite'},h('p',{class:'empty'},'Ask about any dental topic. Answers are for study only, not for diagnosing or treating a patient.'));
+ const lvl=h('select',{'aria-label':'Explanation level'},h('option',{value:'simple'},'Simple'),h('option',{value:'advanced'},'Advanced'));
+ const box=h('textarea',{rows:'3',maxlength:'2000','aria-label':'Your question',placeholder:'e.g. Explain the stages of dentinogenesis'});
+ const btn=h('button',{class:'primary'},'Ask');
+ const add=(c,t)=>{out.querySelector('.empty')?.remove();out.append(h('div',{class:'msg '+c},t));out.scrollTop=out.scrollHeight};
+ log.forEach(m=>add(m.role,m.text));
+ btn.onclick=async()=>{const t=box.value.trim();if(!t)return;box.value='';log.push({role:'user',text:t});add('user',t);btn.disabled=true;btn.textContent='Thinking…';
+  try{let m=log.slice(-19);while(m[0]&&m[0].role!=='user')m.shift();
+   const r=await fetch('/api/tutor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:m,level:lvl.value})});
+   const j=await r.json();if(!r.ok)throw new Error(j.error||'Request failed.');log.push({role:'model',text:j.reply});add('model',j.reply)}
+  catch(e){log.pop();add('err',e.message)}
+  btn.disabled=false;btn.textContent='Ask'};
+ return h('section',{},h('h1',{},'AI tutor'),lvl,out,box,btn)}
+
+function quiz(){const qs=DATA.questions;if(!qs.length)return h('p',{class:'empty'},'No questions loaded.');
+ const q=qs[qi%qs.length],box=h('section',{},h('h1',{},'Quiz'),h('p',{class:'meta'},q.subject+', question '+(qi%qs.length+1)+' of '+qs.length),h('p',{class:'q'},q.q));
+ const fb=h('div',{'aria-live':'polite'});
+ const opts=q.options.map((o,i)=>h('button',{class:'opt',onclick:()=>{
+  opts.forEach((b,j)=>{b.disabled=true;if(j===q.answer)b.classList.add('right');else if(j===i)b.classList.add('wrong')});
+  const s=store.get('quiz',{attempts:0,correct:0});s.attempts++;if(i===q.answer)s.correct++;store.set('quiz',s);
+  fb.replaceChildren(h('p',{},(i===q.answer?'Correct. ':'Incorrect. ')+q.explain),h('button',{class:'primary',onclick:()=>{qi++;render()}},'Next question'))}},o));
+ box.append(...opts,fb);return box}
+
+function cards(){const st=store.get('cards',{});const cs=DATA.cards.filter(c=>!onlyRev||st[c.id]?.revise);
+ const tog=h('label',{},h('input',{type:'checkbox',...(onlyRev?{checked:''}:{}),onchange:e=>{onlyRev=e.target.checked;ci=0;render()}}),' Only cards marked for revision');
+ if(!cs.length)return h('section',{},h('h1',{},'Flashcards'),tog,h('p',{class:'empty'},onlyRev?'No cards marked for revision yet. Mark cards as you review.':'No cards loaded.'));
+ const c=cs[ci%cs.length],ans=h('p',{class:'a',hidden:''},c.a);
+ const mark=r=>{const s=store.get('cards',{});s[c.id]={seen:(s[c.id]?.seen||0)+1,revise:r};store.set('cards',s);ci++;render()};
+ const row=h('div',{class:'row',hidden:''},h('button',{onclick:()=>mark(false)},'Got it'),h('button',{onclick:()=>mark(true)},'Revise again'));
+ return h('section',{},h('h1',{},'Flashcards'),tog,h('p',{class:'meta'},c.subject),h('p',{class:'q'},c.q),ans,
+  h('button',{class:'primary',onclick:e=>{ans.hidden=false;row.hidden=false;e.target.hidden=true}},'Show answer'),row)}
+
+function notes(){const ns=store.get('notes',[]);const e=ns.find(n=>n.id===editing);
+ const subj=h('input',{placeholder:'Subject (e.g. Periodontics)','aria-label':'Subject',maxlength:'60',value:e?.subject||''}),
+  title=h('input',{placeholder:'Topic','aria-label':'Topic',maxlength:'100',value:e?.title||''}),
+  body=h('textarea',{rows:'5','aria-label':'Note',maxlength:'5000'},e?.body||'');
+ const save=h('button',{class:'primary',onclick:()=>{if(!title.value.trim())return title.focus();const n=e||{id:Date.now()};
+  Object.assign(n,{subject:subj.value.trim()||'General',title:title.value.trim(),body:body.value});if(!e)ns.push(n);store.set('notes',ns);editing=null;render()}},e?'Save changes':'Add note');
+ const list=ns.length?ns.slice().sort((a,b)=>a.subject.localeCompare(b.subject)).map(n=>h('article',{class:'card'},h('h3',{},n.title),h('p',{class:'meta'},n.subject),h('p',{class:'pre'},n.body),
+  h('div',{class:'row'},h('button',{onclick:()=>{editing=n.id;render()}},'Edit'),h('button',{onclick:()=>{store.set('notes',ns.filter(x=>x.id!==n.id));render()}},'Delete')))):[h('p',{class:'empty'},'No notes yet. Add your first revision note above.')];
+ return h('section',{},h('h1',{},'Revision notes'),subj,title,body,save,...list)}
+
+function plan(){const ps=store.get('plan',[]);
+ const t=h('input',{placeholder:'Topic to study','aria-label':'Topic',maxlength:'100'}),d=h('input',{type:'date','aria-label':'Date'});
+ const add=h('button',{class:'primary',onclick:()=>{if(!t.value.trim())return t.focus();ps.push({id:Date.now(),topic:t.value.trim(),date:d.value,done:false});store.set('plan',ps);render()}},'Add session');
+ const list=ps.length?ps.slice().sort((a,b)=>(a.date||'9').localeCompare(b.date||'9')).map(p=>h('label',{class:'card row'},
+  h('input',{type:'checkbox','aria-label':'Done',...(p.done?{checked:''}:{}),onchange:e=>{p.done=e.target.checked;store.set('plan',ps)}}),
+  h('span',{},p.topic+(p.date?' ('+p.date+')':'')),h('button',{onclick:e=>{e.preventDefault();store.set('plan',ps.filter(x=>x.id!==p.id));render()}},'Remove'))):[h('p',{class:'empty'},'No study sessions yet. Add a topic and a date.')];
+ return h('section',{},h('h1',{},'Study planner'),t,d,add,...list)}
+
+function progress(){const q=store.get('quiz',{attempts:0,correct:0}),c=store.get('cards',{}),n=store.get('notes',[]),p=store.get('plan',[]);
+ const seen=Object.keys(c).length,rev=Object.values(c).filter(x=>x.revise).length,done=p.filter(x=>x.done).length;
+ const rows=[['Quiz answers',q.attempts?q.correct+' of '+q.attempts+' correct ('+Math.round(100*q.correct/q.attempts)+'%)':'None yet'],['Flashcards reviewed',seen+' ('+rev+' marked for revision)'],['Notes',n.length],['Study sessions done',done+' of '+p.length]];
+ const none=!q.attempts&&!seen&&!n.length&&!p.length;
+ return h('section',{},h('h1',{},'Progress'),none?h('p',{class:'empty'},'Nothing here yet. Answer a quiz question, review a flashcard, or add a note to start.'):'',
+  h('dl',{},...rows.flatMap(([k,v])=>[h('dt',{},k),h('dd',{},String(v))])),h('p',{class:'meta'},'Saved in this browser only.'))}
+
+const views={tutor,quiz,cards,notes,plan,progress};
+function render(){const id=location.hash.slice(1);const k=views[id]?id:'tutor';
+ $('#nav').replaceChildren(...NAV.map(([i,l])=>h('a',{href:'#'+i,class:i===k?'on':'','aria-current':i===k?'page':'false'},l)));
+ $('#view').replaceChildren(views[k]())}
+addEventListener('hashchange',render);
+fetch('/api/data').then(r=>r.json()).then(j=>{DATA=j}).catch(()=>{}).finally(render);
+</script>
+</body>
+</html>

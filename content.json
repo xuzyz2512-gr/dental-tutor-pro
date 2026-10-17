@@ -1,0 +1,12 @@
+{"questions":[
+{"id":"q1","subject":"Oral pathology","q":"Which tooth is most commonly impacted after the third molars?","options":["Mandibular second premolar","Maxillary canine","Maxillary lateral incisor","Mandibular first molar"],"answer":1,"explain":"The maxillary canine is the most common impacted tooth after third molars."},
+{"id":"q2","subject":"Oral histology","q":"Which cells form dentin?","options":["Ameloblasts","Cementoblasts","Odontoblasts","Fibroblasts"],"answer":2,"explain":"Odontoblasts differentiate from dental papilla cells and deposit dentin."},
+{"id":"q3","subject":"Dental materials","q":"Which restorative material chemically bonds to tooth structure and releases fluoride?","options":["Amalgam","Glass ionomer cement","Composite resin","Zinc oxide eugenol"],"answer":1,"explain":"Glass ionomer cement adheres chemically to enamel and dentin and releases fluoride."},
+{"id":"q4","subject":"Periodontics","q":"Which factor is the primary cause of plaque-induced gingivitis?","options":["Dental biofilm","Smoking","Diabetes","Occlusal trauma"],"answer":0,"explain":"Plaque-induced gingivitis is caused by bacterial biofilm; other factors modify the response."}
+],
+"cards":[
+{"id":"c1","subject":"Anatomy","q":"How many teeth are in the complete primary dentition?","a":"20 teeth."},
+{"id":"c2","subject":"Histology","q":"What is the main mineral component of enamel?","a":"Hydroxyapatite (about 96% inorganic by weight)."},
+{"id":"c3","subject":"Operative dentistry","q":"Where do caries most commonly start on permanent molars?","a":"In the pits and fissures of the occlusal surface."},
+{"id":"c4","subject":"Histology","q":"Which cells form enamel?","a":"Ameloblasts."}
+],"note":"Sample items written for this app. Not taken from any official examination."}
